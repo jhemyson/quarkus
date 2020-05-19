@@ -1,0 +1,74 @@
+version: "3"
+services:
+  jaeger_quote:
+    container_name: monitoring_jaeger
+    image: jaegertracing/all-in-one
+    restart: unless-stopped
+    networks:
+      - monitoring
+    ports:
+      - "5775:5775/udp"
+      - "6831:6831/udp"
+      - "6832:6832/udp"
+      - "5778:5778"
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "9411:9411"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: monitoring_prometheus
+    command: ["--config.file=/prometheus-config/prometheus.yml"]
+
+    volumes:
+      - ./prometheus-config:/prometheus-config
+      - ./data/prometheus:/prometheus
+    ports:
+      - 9090:9090
+    networks:
+      - monitoring
+
+
+  grafana:
+    image: grafana/grafana
+    container_name: monitoring_grafana
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    ports:
+      - 3000:3000
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: "root"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - monitoring
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@admin.com"
+      PGADMIN_DEFAULT_PASSWORD: "docker"
+    ports:
+      - "5000:80"
+    networks:
+      - monitoring
+
+
+volumes:
+  pgdata:
+
+networks:
+  monitoring:
+    external: true
